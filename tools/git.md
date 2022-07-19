@@ -250,7 +250,7 @@ $ git cherry-pick C2...C3
   $ git gc --prune=now
   ```
 
-  ## tag/describe
+## tag/describe
 - tag: 分支可以使用上面的方法游走，修改，对于发布版本需要tag来固定历史和commit
   ```bash
   # 列出所有tag
@@ -266,4 +266,60 @@ $ git cherry-pick C2...C3
   $ git describe <commit-need-describe-from-last-tag>
   $ git describe tset
   init-2-g478e7ee
+  ```
+
+## remote 
+- 常见命令
+  ```bash
+  # 将远程仓库检出到本地，本地会有其镜像，例如：
+  # 远程仓库名称：origin, 远程分支： master
+  # 检出到本地分支： origin/master, 这个分支是无法直接编辑的
+  $ git clone remote-
+  
+  # 下载远程仓库的所有变动, fetch只干两件事：1.下载commit，2.更新本地镜像分支指针（如： origin/master）
+  $ git fetch [remote]
+  # 取回远程仓库的变化，并与本地当前分支合并
+  $ git pull [remote] [branch]
+  # 等同于
+  $ git fetch [remote] [branch] && git merge remote/branch
+  
+  # 上传本地指定分支到远程仓库, 同时更新本地镜像分支指针, 后面两个参数可以为空，将为推送当前分支到其追踪的远程分支
+  $ git push [remote] [branch]
+
+
+  # 显示所有远程仓库
+  $ git remote -v
+  # 显示某个远程仓库的信息
+  $ git remote show [remote]
+  # 增加一个新的远程仓库，并命名
+  $ git remote add [shortname] [url]
+
+  ```
+- 平常的操作流程
+  ```bash
+  # 发布前先获取最新的更新
+  $ git fetch
+  # rebase到最新的commit上, 这里的远程仓库名称和分支名称按实际情况而定
+  $ git rebase origin/master
+  # 发布新commit
+  $ git push
+  ```
+- remote track
+  ```bash
+  # 检出远程分支到新分支mybranch,并追踪远程分支（后续的push会更新origin/master的位置）
+  $ git checkout -b mybranch origin/master
+  # 也可以使用branch操作设置远程追踪分支, 如果mybranch是当前分支，后面的参数mybranch可省略
+  $ git branch -u origin/master mybranch
+
+  # 也可以将本地的source分支或commit推送到远程分支destination中
+  $ git push origin <source>:<destination>
+  # 也可以推送到远程新分支，git会自动创建远程分支和对应的本地镜像
+  $ git push origin master:newBranch
+  # 也可以检出远程分支中的某个commit为本地新分支
+  $ git fetch origin master^2:mylocalBranch
+
+  # 特殊：可以删除远程分支
+  $ git push origin :branchWantDelete
+  # 特殊：创建了本地分支(在当前commit)
+  $ git fetch origin :newLocalBranch
   ```
