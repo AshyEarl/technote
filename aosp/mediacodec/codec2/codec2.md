@@ -1,0 +1,3 @@
+- `CCodec`继承自`CodecBase`，用于兼容之前的`ACodec`(OMX-based)
+- `CCodecBufferChannel`继承自`BufferChannelBase`，用于兼容之前ACodec中的`ACodecBufferChannel`，其中包含了Codec2接口的调用实现
+- 

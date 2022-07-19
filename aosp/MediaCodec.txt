@@ -1,0 +1,223 @@
+[android.media.MediaCodec.java]
++ MediaCodec.createByCodecName(name);
+ | return new MediaCodec(name, false /* nameIsType */, false /* unused */);
+  | mEventHandler = new EventHandler(this, looper);
+  | native_setup(name, nameIsType, encoder);
+   [frameworks/base/media/jni/android_media_MediaCodec.cpp]
+   | static void android_media_MediaCodec_native_setup(JNIEnv *env, jobject thiz, jstring name, jboolean nameIsType, jboolean encoder)
+    | const char *tmp = env->GetStringUTFChars(name, NULL);
+    | sp<JMediaCodec> codec = new JMediaCodec(env, thiz, tmp, nameIsType, encoder);
+     | mLooper = new ALooper;
+     | mLooper->setName("MediaCodec_looper");
+     | mLooper->start(/*runOnCallingThread*/ false,/*canCallJava*/ true, ANDROID_PRIORITY_VIDEO);
+     | mCodec = MediaCodec::CreateByComponentName(mLooper, name, &mInitStatus);
+      | sp<MediaCodec> codec = new MediaCodec(looper, pid, uid);
+      | const status_t ret = codec->init(name);
+    | const status_t err = codec->initCheck();
+    | codec->registerSelf();
+    | setMediaCodec(env,thiz, codec);
+      
+
+
+[framworks/av/media/libstagefright/foundation/ALooper.cpp]
+struct ALooper : public RefBase {
+ -----------------------------------------------------------------
+ // Clear old handlers when new looper create.
+ + ALooper::ALooper() : mRunningLocally(false) 
+  | gLooperRoster.unregisterStaleHandlers()
+ -----------------------------------------------------------------
+ // Stop the looper thread
+ + ALooper::~ALooper()  
+  | stop();
+ -----------------------------------------------------------------
+ + ALooper::handler_id ALooper::registerHandler(const sp<AHandler> &handler)
+  | return gLooperRoster.registerHandler(this, handler);
+ -----------------------------------------------------------------
+ + void ALooper::unregisterHandler(handler_id handlerID)
+  | gLooperRoster.unregisterHandler(handlerID);
+ -----------------------------------------------------------------
+ + status_t ALooper::start( bool runOnCallingThread, bool canCallJava, int32_t priority)
+  | if (runOnCallingThread) { do {} while (loop()); return OK; }
+  | mThread = new LooperThread(this, canCallJava);
+  | mThread->run( mName.empty() ? "ALooper" : mName.c_str(), priority);
+ -----------------------------------------------------------------
+ + status_t ALooper::stop()
+  | Mutex::Autolock autoLock(mLock);
+  | sp<LooperThread> thread = mThread;
+  // Exit threadloop(), no next ALooper.loop() call
+  | thread->requestExit();
+  // Wakeup looper thread from wait AMessage.
+  | mQueueChangedCondition.signal();
+  // Wakeup all reply waiter
+  | Mutex::Autolock autoLock(mRepliesLock);
+  | mRepliesCondition.broadcast();
+ -----------------------------------------------------------------
+ + void ALooper::post(const sp<AMessage> &msg, int64_t delayUs)
+  | Mutex::Autolock autoLock(mLock);
+  | Event event(whenUs, msg)
+  // Find insert positon by time
+  | List<Event>::iterator it = mEventQueue.begin();
+  | while (it != mEventQueue.end() && (*it).mWhenUs <= whenUs) { ++it; }
+  // Wakeup looper thread.
+  | if (it == mEventQueue.begin()) { mQueueChangedCondition.signal(); }
+  // Insert event, it will be dequeue in ALooper.loop()
+  | mEventQueue.insert(it, event);
+ -----------------------------------------------------------------
+ + bool ALooper::loop()
+  | Mutex::Autolock autoLock(mLock);
+  | if (mEventQueue.empty()) { mQueueChangedCondition.wait(mLock); return true; }
+  | int64_t whenUs = (*mEventQueue.begin()).mWhenUs;
+  | int64_t nowUs = GetNowUs();
+  // Wait on first event.
+  | if (whenUs > nowUs) { mQueueChangedCondition.waitRelative(mLock, delayUs * 1000ll); return true; }
+  | event = *mEventQueue.begin();
+  | mEventQueue.erase(mEventQueue.begin());
+  | event.mMessage->deliver();
+ -----------------------------------------------------------------
+ // Wait for message been processed & replay with postReply
+ + status_t ALooper::awaitResponse(const sp<AReplyToken> &replyToken, sp<AMessage> *response)
+  | Mutex::Autolock autoLock(mRepliesLock);
+  | while (!replyToken->retrieveReply(response)) {
+  |  Mutex::Autolock autoLock(mLock);
+  |  mRepliesCondition.wait(mRepliesLock);
+  | }
+ -----------------------------------------------------------------
+ // Post reply & wakeup caller
+ + status_t ALooper::postReply(const sp<AReplyToken> &replyToken, const sp<AMessage> &reply)
+ | Mutex::Autolock autoLock(mRepliesLock);
+ | err = replyToken->setReply(reply);
+ | if (err == OK) { mRepliesCondition.broadcast(); }
+}
+
+struct Event { int64_t mWhenUs; sp<AMessage> mMessage; };
+
+struct ALooper::LooperThread : public Thread {
+ + LooperThread(ALooper *looper, bool canCallJava) : Thread(canCallJava), mLooper(looper), mThreadId(NULL) {}
+ + virtual status_t readyToRun()
+  | mThreadId = androidGetThreadId();
+  | return Thread::readyToRun();
+ + virtual bool threadLoop() { return mLooper->loop(); }
+}
+
+
+[framworks/av/media/libstagefright/foundation/AMessage.cpp]
+struct AMessage : public RefBase {
+ -----------------------------------------------------------------
+ // Make a new message
+ + AMessage::AMessage(uint32_t what, const sp<const AHandler> &handler) : mWhat(what)
+  | setTarget(handler);
+ -----------------------------------------------------------------
+ // Clear all message prop
+ + void AMessage::clear()
+  | for (Item &item : mItems) {
+  |  delete[] item.mName;
+  |  item.mName = NULL;
+  |  freeItemValue(&item);
+  | }
+  | mItems.clear();
+ -----------------------------------------------------------------
+ // Put OR Get prop.
+ + void AMessage::setInt32(const char *name, int32_t value)
+ + bool AMessage::findInt32(const char *name, int32_t *value) const
+ -----------------------------------------------------------------
+ // Send message to Looper
+ + void AMessage::deliver()
+  // mHandler is weak point, ref by ALooperRoster, clear in new looper create.
+  | sp<AHandler> handler = mHandler.promote();
+  | if (handler == NULL) { return; }
+  | handler->deliverMessage(this);
+ -----------------------------------------------------------------
+ // Post to looper
+ + status_t AMessage::post(int64_t delayUs)
+  | sp<ALooper> looper = mLooper.promote();
+  | if (handler == NULL) { return; }
+  | looper->post(this, delayUs);
+ -----------------------------------------------------------------
+ // Post message & wait reply(In AHandler.onMessageReceived -> AMessage.postReply)
+ + status_t AMessage::postAndAwaitResponse(sp<AMessage> *response)
+  | sp<ALooper> looper = mLooper.promote();
+  | sp<AReplyToken> token = looper->createReplyToken();
+  | setObject("replyID", token);
+  | looper->post(this, 0 /* delayUs */);
+  | return looper->awaitResponse(token, response);
+ -----------------------------------------------------------------
+ + status_t AMessage::postReply(const sp<AReplyToken> &replyToken)
+  | sp<ALooper> looper = replyToken->getLooper();
+  | return looper->postReply(replyToken, this);
+ -----------------------------------------------------------------
+ // ??????
+ + bool AMessage::senderAwaitsResponse(sp<AReplyToken> *replyToken)
+  | findObject("replyID", &replyToken);
+  | return *replyToken != NULL;
+ -----------------------------------------------------------------
+ // Entry(prop) ops
+ + size_t AMessage::countEntries() const
+ + const char *AMessage::getEntryNameAt(size_t index, Type *type) const
+ + AMessage::ItemData AMessage::getEntryAt(size_t index) const
+ + status_t AMessage::setEntryNameAt(size_t index, const char *name)
+ + status_t AMessage::setEntryAt(size_t index, const ItemData &item)
+ + status_t AMessage::removeEntryAt(size_t index)
+ + status_t AMessage::removeEntryByName(const char *name)
+ + void AMessage::setItem(const char *name, const ItemData &item)
+ + AMessage::ItemData AMessage::findItem(const char *name)
+}
+
+// Use to store AMessage prop
+struct Item {
+ union {
+  int32_t int32Value;
+  int64_t int64Value;
+  size_t sizeValue;
+  float floatValue;
+  double doubleValue;
+  void *ptrValue;
+  RefBase *refValue;
+  AString *stringValue;
+  Rect rectValue;
+ } u;
+ const char *mName;
+ Type mType;
+}
+
+
+[framworks/av/media/libstagefright/foundation/AHandler.cpp]
+struct AHandler : public RefBase {
+ -----------------------------------------------------------------
+ // Real message handler.
+ + virtual void onMessageReceived(const sp<AMessage> &msg)
+ -----------------------------------------------------------------
+ // Called by AMessage.deliver()
+ + void deliverMessage(const sp<AMessage> &msg)
+  | onMessageReceived(msg);
+}
+
+
+[framworks/av/media/libstagefright/foundation/ALooperRoster.cpp]
+struct ALooperRoster {
+ -----------------------------------------------------------------
+ // Register handler: add to global list.
+ + ALooper::handler_id registerHandler( const sp<ALooper> &looper, const sp<AHandler> &handler)
+  | Mutex::Autolock autoLock(mLock);
+  | HandlerInfo info(looper, handler);
+  | ALooper::handler_id handlerID = mNextHandlerID++;
+  | mHandlers.add(handlerID, info);
+  | handler->setID(handlerID, looper);
+ -----------------------------------------------------------------
+ // Unregister handler: remvoe global list.
+ + void unregisterHandler(ALooper::handler_id handlerID)
+  | Mutex::Autolock autoLock(mLock);
+  | ssize_t index = mHandlers.indexOfKey(handlerID);
+  | mHandlers.removeItemsAt(index);
+ -----------------------------------------------------------------
+ // Clear handlers which looper has destory.
+ + void unregisterStaleHandlers();
+}
+
+
+
+// Client codec base class, impls: ACodec(OMX stuff), CCodec(Codec2 stuff)
+struct CodecBase : public AHandler, /* static */ ColorUtils {
+}
+
+
+

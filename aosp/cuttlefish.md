@@ -12,15 +12,35 @@ go env
 go env -json
 ```
 
+- 安装主机端工具
+```bash
+sudo apt install -y git devscripts config-package-dev debhelper-compat golang
+git clone https://github.com/google/android-cuttlefish
+cd android-cuttlefish
+debuild -i -us -uc -b -d
+sudo dpkg -i ../cuttlefish-common_*_*64.deb || sudo apt-get install -f
+sudo usermod -aG kvm,cvdnetwork,render $USER
+sudo reboot
+```
+
 - 启用主机GL硬件加速渲染
 ```
 HOME=$PWD ./bin/launch_cvd --gpu_mode=gfxstream
 ```
 
-> `crosvm`：Rust实现的虚拟机Monitor
-[项目地址](https://android.googlesource.com/platform/external/crosvm/)
-> [主机端工具](https://github.com/google/android-cuttlefish)
+> - `crosvm`：Rust实现的虚拟机Monitor
+> - [项目地址](https://android.googlesource.com/platform/external/crosvm/)
+> - [主机端工具](https://github.com/google/android-cuttlefish)
 
+```bash
+// RemoveZip 用于免下载直接列出zip目录
+// 项目地址： https://pypi.org/project/remotezip/
+pip install remotezip
+
+remotezip -l http://xxx
+```
+
+----
 ## 有用的git logs
 可以在review站点上查看这些修改：`https://android-review.linaro.org/plugins/gitiles/device/google/cuttlefish/+/[change_ref]`
 - 72c9b54eaffb8edb40d1f2a3776e5dec5a06c647

@@ -1,0 +1,5 @@
+- [Project Sakura](https://projectsakura.xyz/)
+- [SupremeGamers](https://supreme-gamers.com)
+- [GalliumHud](https://manerosss.wordpress.com/2017/07/13/howto-gallium-hud/)
+- [RetroLXkernel](https://github.com/RetroLX/kernel)
+- 

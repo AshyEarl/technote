@@ -1,0 +1,5 @@
+- [CMake学习笔记](https://www.junz.org/post/cmake_notes/)
+- [CMake Examples](https://github.com/ttroy50/cmake-examples)
+- [CMake Tutorial](https://cmake.org/cmake/help/latest/guide/tutorial/index.html)
+- [CMake 掘金](https://juejin.cn/column/6989984891790327845)
+- [CMake学习](https://juejin.cn/post/6989983840064241671)
