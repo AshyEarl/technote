@@ -141,6 +141,37 @@ $ git rebase <branch-rebase-on>
 # rebase 当前分支到指定的commit(upstream), 使用外部交互式编辑器（可以用vscode，更直观）
 $ git rebase -i [<upstream> [<branch>]]
 ```
+交互式rebase时会有选择commit怎么rebase的选项, vscode中显示如下, commit可以拖动重新排序，也可以选择不同的操作方式
+
+![](git_010.png)
+
+| 命令   | 说明                                                   |
+| ------ | ------------------------------------------------------ |
+| pick   | 保留commit和其注释                                     |
+| reword | 保留commit，编辑注释                                   |
+| edit   | 保留commit，执行到该commit时可以修改内容，添加删除文件 |
+| squash | 保留commit，合并到前一个commit                         |
+| fixup  | 类似squash，但丢弃注释                                 |
+```bash
+# Commands:
+# p, pick <commit> = use commit
+# r, reword <commit> = use commit, but edit the commit message
+# e, edit <commit> = use commit, but stop for amending
+# s, squash <commit> = use commit, but meld into previous commit
+# f, fixup [-C | -c] <commit> = like "squash" but keep only the previous
+#                    commit's log message, unless -C is used, in which case
+#                    keep only this commit's message; -c is same as -C but
+#                    opens the editor
+# x, exec <command> = run command (the rest of the line) using shell
+# b, break = stop here (continue rebase later with 'git rebase --continue')
+# d, drop <commit> = remove commit
+# l, label <label> = label current HEAD with a name
+# t, reset <label> = reset HEAD to a label
+# m, merge [-C <commit> | -c <commit>] <label> [# <oneline>]
+# .       create a merge commit using the original merge commit's
+# .       message (or the oneline, if no original merge commit was
+# .       specified); use -c <commit> to reword the commit message
+```
 
 ## commit/branch 引用
 `HEAD`是git中一个特殊的指针，指向了当前检出的commit，可以使用下面的方法索引commit
