@@ -1,0 +1,146 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?><svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" contentStyleType="text/css" height="260px" preserveAspectRatio="none" style="width:441px;height:260px;background:#000000;" version="1.1" viewBox="0 0 441 260" width="441px" zoomAndPan="magnify"><defs/><g><rect fill="#12160F" height="1" style="stroke:#12160F;stroke-width:1.0;" width="1" x="0" y="0"/><text fill="#33FF02" font-family="sans-serif" font-size="12" font-style="italic" font-weight="bold" lengthAdjust="spacing" textLength="129" x="5" y="17">PlantUML 1.2022.5</text><text fill="#33FF02" font-family="sans-serif" font-size="12" font-style="italic" font-weight="bold" lengthAdjust="spacing" textLength="4" x="5" y="30.9688"> </text><text fill="#33FF02" font-family="sans-serif" font-size="12" font-style="italic" font-weight="bold" lengthAdjust="spacing" textLength="419" x="5" y="44.9375">&lt;b&gt;This version of PlantUML is 103 days old, so you should</text><text fill="#33FF02" font-family="sans-serif" font-size="12" font-style="italic" font-weight="bold" lengthAdjust="spacing" textLength="427" x="5" y="58.9063">&lt;b&gt;consider upgrading from https://plantuml.com/download</text><rect fill="#33FF02" height="21.2969" style="stroke:#33FF02;stroke-width:1.0;" width="418" x="5" y="68.875"/><text fill="#000000" font-family="sans-serif" font-size="14" font-weight="bold" lengthAdjust="spacing" textLength="168" x="6" y="83.875">[From string (line 8) ]</text><text fill="#33FF02" font-family="sans-serif" font-size="14" font-weight="bold" lengthAdjust="spacing" textLength="5" x="5" y="104.1719"> </text><text fill="#33FF02" font-family="sans-serif" font-size="14" font-weight="bold" lengthAdjust="spacing" textLength="79" x="5" y="120.4688">@startuml</text><text fill="#33FF02" font-family="sans-serif" font-size="14" font-weight="bold" lengthAdjust="spacing" textLength="334" x="5" y="136.7656">package "CompositionEngine" #DDDDDD {</text><text fill="#33FF02" font-family="sans-serif" font-size="14" font-weight="bold" lengthAdjust="spacing" textLength="109" x="25" y="153.0625">class Output{</text><text fill="#33FF02" font-family="sans-serif" font-size="14" font-weight="bold" lengthAdjust="spacing" textLength="340" x="45" y="169.3594">+ virtual void setCompositionEnabled(bool)</text><text fill="#33FF02" font-family="sans-serif" font-size="14" font-weight="bold" lengthAdjust="spacing" textLength="378" x="45" y="185.6563">+ virtual std::optional&lt;DisplayId&gt; getDisplayId()</text><text fill="#33FF02" font-family="sans-serif" font-size="14" font-weight="bold" lengthAdjust="spacing" textLength="10" x="25" y="201.9531">}</text><text fill="#33FF02" font-family="sans-serif" font-size="14" font-weight="bold" lengthAdjust="spacing" textLength="5" x="5" y="218.25"> </text><text fill="#33FF02" font-family="sans-serif" font-size="14" font-weight="bold" lengthAdjust="spacing" text-decoration="wavy underline" textLength="168" x="25" y="234.5469">struct FrameFences{</text><text fill="#FF0000" font-family="sans-serif" font-size="14" font-weight="bold" lengthAdjust="spacing" textLength="106" x="10" y="250.8438">Syntax Error?</text><!--MD5=[357837141c1d2de63f1f51221d5d1245]
+@startuml
+package "CompositionEngine" #DDDDDD {
+    class Output{
+        + virtual void setCompositionEnabled(bool) 
+        + virtual std::optional<DisplayId> getDisplayId()
+    }
+
+    struct FrameFences{
+        + presentFence: sp<Fence>
+        + clientTargetAcquireFence: sp<Fence>
+        + layerFences: std::unordered_map<HWC2::Layer*, sp<Fence>>
+    }
+    struct ColorProfile {
+        + mode: ui::ColorMode 
+        + dataspace: ui::Dataspace 
+        + renderIntent: ui::RenderIntent 
+        + colorSpaceAgnosticDataspace: ui::Dataspace 
+    }
+
+    class Display extends Output{}
+
+    Output +- FrameFences
+    Output +- ColorProfile
+}
+
+package "RenderEngine" #DDDDDD {
+    struct Buffer{
+        + buffer: std::shared_ptr<ExternalTexture>
+        + fence: sp<Fence>
+        + usePremultipliedAlpha: bool
+        + isOpaque: bool
+    }
+    note right of Buffer
+        Buffer用于应用合成的图层，它直接关联了一个ExternalTexture，
+        其由GL从GraphicBuffer导入，将应用传递过来的图层转为纹理用于后续合成
+        buffer: 为空时其他属性都将被忽略
+        isOpaque: 是否不透明，会影响其下的图层是否被绘制
+    end note
+
+    class ExternalTexture{
+        + ExternalTexture(const sp<GraphicBuffer>& buffer, RenderEngine& renderEngine, uint32_t usage);
+        + const sp<GraphicBuffer>& getBuffer()
+        - mBuffer: sp<GraphicBuffer>
+    }
+
+    struct PixelSource{
+        + buffer: Buffer
+        + solidColor: half3
+    }
+
+    struct Geometry {
+        + boundaries: FloatRect
+        + positionTransform: mat4
+        + roundedCornersRadius: float
+        + roundedCornersCrop: FloatRect
+    }
+
+    struct ShadowSettings {
+        + boundaries: FloatRect
+        + ambientColor: vec4
+        + spotColor: vec4
+        + lightPos: vec3
+        + lightRadius: float
+        + lenght: float
+        + casterIsTranslucent: bool
+    }
+
+    struct LayerSettings{
+        + name: std::string
+        + geometry: Geometry
+        + source: PixelSource
+        + alpha: half
+        + sourceDataspace: ui::Dataspace
+        + colorTransform: mat4
+        + disableBlending: bool
+        + skipContentDraw: bool
+        + shadow: ShadowSettings
+        ..blur..
+        + backgroundBlurRadius: int
+        + blurRegions: std::vector<BlurRegion>
+        + blurRegionTransform: mat4
+        + stretchEffect: StretchEffect
+    }
+
+    struct DisplaySettings {
+        + physicalDisplay: Rect
+        + clip: Rect
+        + maxLuminance: float
+        + outputDataspace: ui::Dataspace
+        + colorTransform: mat4
+        + clearRegion: Region
+        + orientation: uint32_t 
+    }
+
+    class RenderEngine {
+        + {static} unique_ptr<RenderEngine> create(const RenderEngineCreationArgs& args)
+        + {abstract} status_t drawLayers(const DisplaySettings& display,
+                                const std::vector<const LayerSettings*>& layers,
+                                const std::shared_ptr<ExternalTexture>& buffer,
+                                const bool useFramebufferCache, base::unique_fd&& bufferFence,
+                                base::unique_fd* drawFence)
+        + {abstract} void cleanupPostRender()
+        # {abstract} void mapExternalTextureBuffer(const sp<GraphicBuffer>& buffer, bool isRenderable)
+        # {abstract} void unmapExternalTextureBuffer(const sp<GraphicBuffer>& buffer)
+        # {abstract} bool canSkipPostRenderCleanup()
+    }
+
+    class GLESRenderEngine implements RenderEngine {
+        + EGLDisplay getEGLDisplay()
+        + EGLImageKHR createFramebufferImageIfNeeded(ANativeWindowBuffer* nativeBuffer, ...)
+    }
+
+    class Framebuffer {
+        + {abstract} bool setNativeWindowBuffer(ANativeWindowBuffer* nativeBuffer, ...)
+    }
+
+    class GLFramebuffer implements Framebuffer{
+        - mEGLDisplay: EGLDisplay
+        - mEGLImage: EGLImageKHR
+        - usingFramebufferCache: bool
+        - mTextureName: uint32_t
+        - mFramebufferName: uint32_t
+        - mBufferHeight: int32_t
+        - mBufferWidth: int32_t
+    }
+
+    Buffer *- - ExternalTexture
+    PixelSource *- - Buffer
+    LayerSettings *- - Geometry
+    LayerSettings *- - PixelSource
+    LayerSettings *- - ShadowSettings
+    RenderEngine o- - DisplaySettings
+    RenderEngine o- - LayerSettings
+    RenderEngine o- - Framebuffer
+}
+@enduml
+
+PlantUML version 1.2022.5(Sat Apr 30 18:55:52 CST 2022)
+(GPL source distribution)
+Java Runtime: Java(TM) SE Runtime Environment
+JVM: Java HotSpot(TM) 64-Bit Server VM
+Default Encoding: UTF-8
+Language: en
+Country: US
+--></g></svg>

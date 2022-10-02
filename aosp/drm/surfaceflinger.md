@@ -1,0 +1,138 @@
+```plantuml
+@startuml
+package "CompositionEngine" #DDDDDD {
+    class Output{
+        + virtual void setCompositionEnabled(bool) 
+        + virtual std::optional<DisplayId> getDisplayId()
+    }
+
+    struct FrameFences{
+        + presentFence: sp<Fence>
+        + clientTargetAcquireFence: sp<Fence>
+        + layerFences: std::unordered_map<HWC2::Layer*, sp<Fence>>
+    }
+    struct ColorProfile {
+        + mode: ui::ColorMode 
+        + dataspace: ui::Dataspace 
+        + renderIntent: ui::RenderIntent 
+        + colorSpaceAgnosticDataspace: ui::Dataspace 
+    }
+
+    class Display extends Output{}
+
+    Output +- FrameFences
+    Output +- ColorProfile
+}
+
+package "RenderEngine" #DDDDDD {
+    struct Buffer{
+        + buffer: std::shared_ptr<ExternalTexture>
+        + fence: sp<Fence>
+        + usePremultipliedAlpha: bool
+        + isOpaque: bool
+    }
+    note right of Buffer
+        Buffer用于应用合成的图层，它直接关联了一个ExternalTexture，
+        其由GL从GraphicBuffer导入，将应用传递过来的图层转为纹理用于后续合成
+        buffer: 为空时其他属性都将被忽略
+        isOpaque: 是否不透明，会影响其下的图层是否被绘制
+    end note
+
+    class ExternalTexture{
+        + ExternalTexture(const sp<GraphicBuffer>& buffer, RenderEngine& renderEngine, uint32_t usage);
+        + const sp<GraphicBuffer>& getBuffer()
+        - mBuffer: sp<GraphicBuffer>
+    }
+
+    struct PixelSource{
+        + buffer: Buffer
+        + solidColor: half3
+    }
+
+    struct Geometry {
+        + boundaries: FloatRect
+        + positionTransform: mat4
+        + roundedCornersRadius: float
+        + roundedCornersCrop: FloatRect
+    }
+
+    struct ShadowSettings {
+        + boundaries: FloatRect
+        + ambientColor: vec4
+        + spotColor: vec4
+        + lightPos: vec3
+        + lightRadius: float
+        + lenght: float
+        + casterIsTranslucent: bool
+    }
+
+    struct LayerSettings{
+        + name: std::string
+        + geometry: Geometry
+        + source: PixelSource
+        + alpha: half
+        + sourceDataspace: ui::Dataspace
+        + colorTransform: mat4
+        + disableBlending: bool
+        + skipContentDraw: bool
+        + shadow: ShadowSettings
+        ..blur..
+        + backgroundBlurRadius: int
+        + blurRegions: std::vector<BlurRegion>
+        + blurRegionTransform: mat4
+        + stretchEffect: StretchEffect
+    }
+
+    struct DisplaySettings {
+        + physicalDisplay: Rect
+        + clip: Rect
+        + maxLuminance: float
+        + outputDataspace: ui::Dataspace
+        + colorTransform: mat4
+        + clearRegion: Region
+        + orientation: uint32_t 
+    }
+
+    class RenderEngine {
+        + {static} unique_ptr<RenderEngine> create(const RenderEngineCreationArgs& args)
+        + {abstract} status_t drawLayers(const DisplaySettings& display,
+                                const std::vector<const LayerSettings*>& layers,
+                                const std::shared_ptr<ExternalTexture>& buffer,
+                                const bool useFramebufferCache, base::unique_fd&& bufferFence,
+                                base::unique_fd* drawFence)
+        + {abstract} void cleanupPostRender()
+        # {abstract} void mapExternalTextureBuffer(const sp<GraphicBuffer>& buffer, bool isRenderable)
+        # {abstract} void unmapExternalTextureBuffer(const sp<GraphicBuffer>& buffer)
+        # {abstract} bool canSkipPostRenderCleanup()
+    }
+
+    class GLESRenderEngine implements RenderEngine {
+        + EGLDisplay getEGLDisplay()
+        + EGLImageKHR createFramebufferImageIfNeeded(ANativeWindowBuffer* nativeBuffer, ...)
+    }
+
+    class Framebuffer {
+        + {abstract} bool setNativeWindowBuffer(ANativeWindowBuffer* nativeBuffer, ...)
+    }
+
+    class GLFramebuffer implements Framebuffer{
+        - mEGLDisplay: EGLDisplay
+        - mEGLImage: EGLImageKHR
+        - usingFramebufferCache: bool
+        - mTextureName: uint32_t
+        - mFramebufferName: uint32_t
+        - mBufferHeight: int32_t
+        - mBufferWidth: int32_t
+    }
+
+    Buffer *-- ExternalTexture
+    PixelSource *-- Buffer
+    LayerSettings *-- Geometry
+    LayerSettings *-- PixelSource
+    LayerSettings *-- ShadowSettings
+    RenderEngine o-- DisplaySettings
+    RenderEngine o-- LayerSettings
+    RenderEngine o-- Framebuffer
+}
+@enduml
+```

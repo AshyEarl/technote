@@ -36,3 +36,5 @@ Kernel config位于`<AOSP>/kernel/kernel/configs`
   ```bash
   KCONFIG_CONFIG=../out/android12-5.10/earl/.config make menuconfig
   ```
+
+[开启MMC debug log](https://www.cnblogs.com/YYFaGe/p/15905264.html)

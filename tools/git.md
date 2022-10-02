@@ -130,7 +130,7 @@ merge将会保留被merge的分支历史在单独的支线里（不同与rebase�
 
 > 右边main是bugFix的父commit，因此`git checkout main && git rebase bugFix`bugFix会和main指向同一commit
 
-![](git_001.png)  ![](git_002.png)
+![](images/git_001.png)  ![](images/git_002.png)
 ```bash
 # 合并指定commit或分支到当前分支
 $ git merge [<commit-merge-from>...]
@@ -235,19 +235,19 @@ $ git cherry-pick C1..C3
 # 或者，三个点指代包含
 $ git cherry-pick C2...C3
 ```
-![](git_003.png)
+![](images/git_003.png)
 
 ## log
 `git log`可以显示当前commit或者指定commit的log日志
 - `git log`
   
-  ![](git_004.png)
+  ![](images/git_004.png)
 - `git log --all --decorate --oneline --graph`
-  ![](git_005.png)
+  ![](images/git_005.png)
 - `git log --graph --abbrev-commit --decorate --format=format:'%C(bold blue)%h%C(reset) - %C(bold green)(%ar)%C(reset) %C(white)%s%C(reset) %C(dim white)- %an%C(reset)%C(bold yellow)%d%C(reset)' --all`
-  ![](git_006.png)
+  ![](images/git_006.png)
 - `git log --graph --abbrev-commit --decorate --format=format:'%C(bold blue)%h%C(reset) - %C(bold cyan)%aD%C(reset) %C(bold green)(%ar)%C(reset)%C(bold yellow)%d%C(reset)%n''          %C(white)%s%C(reset) %C(dim white)- %an%C(reset)' --all`
-  ![](git_007.png)
+  ![](images/git_007.png)
 - 可以通过设置别名的方式来快速使用这些命令
   ```bash
   # adog: 后面参数的首字母
@@ -260,14 +260,14 @@ $ git cherry-pick C2...C3
 
 ## fsck/reflog/gc
 - reflog: 可以查看最近的HEAD相关的操作历史记录,左边为HEAD hash，右边为简短说明，可以用来找回无引用的commit。Git默认会用reflog引用这些commit，因此他们不是`unreachable`，可以用下面的命令清除log来删除它(下面0913的commit没了)
-  ![](git_008.png)
+  ![](images/git_008.png)
   ```bash
   # 强制现在为止的unreachable记录过期（正常的记录还在），也就不会再引用那些commit
   $ git reflog expire --expire-unreachable=now --all
   # 也可以使用删除来处理单条记录
   $ git reflog delete HEAD@{2}
   ```
-  ![](git_009.png)
+  ![](images/git_009.png)
 - 当使用`rebase`,`commit --amend`,`branch -f`等命令后会导致部分commit没有其他分支或tag引用，默认再找不到它了，可以用下面的命令找到这些commit:
   ```bash
   # fsck用于校验commit的连接性和可用性

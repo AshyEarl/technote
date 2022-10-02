@@ -26,3 +26,16 @@
   make ramdisk
   // 会在out目录生成 ramdisk.img 和 ramdisk 目录
   ```
+
+- 生成efi.img
+  ```bash
+  dd if=/dev/zero of=efi.img bs=128k count=1
+  mkfs.fat efi.img
+  mkdir efi
+  sudo mount -o loop efi.img efi
+  cd efi
+  sudo mkdir -p efi/boot
+  sudo cp ~/opensource/aosp/boot_uefi_loader/x86_64/loader/efi_loader.efi efi/boot/bootx64.efi
+  cd ..
+  sudo unmount efi
+  ```
