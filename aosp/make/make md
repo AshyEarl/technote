@@ -1,0 +1,94 @@
+
+## . build/envsetup.sh
+> build/envsetup.sh -> build/make/envsetup.sh
+https://cs.android.com/android/platform/superproject/+/master:build/make/envsetup.sh
+
+```bash
+# 确认当前shell是 bash 或者 zsh
+validate_current_shell
+# 导入 device,vendor,product 目录下的 vendorsetup.sh
+source_vendorsetup
+# 添加自动补全的命令行，例如：adb
+addcompletions
+```
+
+### validate_current_shell
+```bash
+function validate_current_shell() {
+    # $$ 为当前的进程ID
+    local current_sh="$(ps -o command -p $$)"
+    # current_sh="COMMAND\nbash"
+    case "$current_sh" in
+        *bash*)
+            function check_type() { type -t "$1"; }
+            ;;
+        *zsh*)
+            function check_type() { type "$1"; }
+            enable_zsh_completion ;;
+        *)
+            echo -e "WARNING: Only bash and zsh are supported.\nUse of other shell would lead to erroneous results."
+            ;;
+    esac
+}
+```
+
+### source_vendorsetup
+```bash
+function source_vendorsetup() {
+    unset VENDOR_PYTHONPATH
+    # 获取源码根目录(调用自定义方法)
+    local T="$(gettop)"
+    allowed=
+    for f in $(cd "$T" && find -L device vendor product -maxdepth 4 -name 'allowed-vendorsetup_sh-files' 2>/dev/null | sort); do
+        if [ -n "$allowed" ]; then
+            echo "More than one 'allowed_vendorsetup_sh-files' file found, not including any vendorsetup.sh files:"
+            echo "  $allowed"
+            echo "  $f"
+            return
+        fi
+        allowed="$T/$f"
+    done
+
+    allowed_files=
+    [ -n "$allowed" ] && allowed_files=$(cat "$allowed")
+    for dir in device vendor product; do
+        for f in $(cd "$T" && test -d $dir && \
+            find -L $dir -maxdepth 4 -name 'vendorsetup.sh' 2>/dev/null | sort); do
+
+            if [[ -z "$allowed" || "$allowed_files" =~ $f ]]; then
+                echo "including $f"; . "$T/$f"
+            else
+                echo "ignoring $f, not in $allowed"
+            fi
+        done
+    done
+}
+
+# 向上层目录找到包含 build/make/core/envsetup.mk 的目录
+function gettop
+{
+    local TOPFILE=build/make/core/envsetup.mk
+    if [ -n "$TOP" -a -f "$TOP/$TOPFILE" ] ; then
+        # The following circumlocution ensures we remove symlinks from TOP.
+        (cd "$TOP"; PWD= /bin/pwd)
+    else
+        if [ -f $TOPFILE ] ; then
+            # The following circumlocution (repeated below as well) ensures
+            # that we record the true directory name and not one that is
+            # faked up with symlink names.
+            PWD= /bin/pwd
+        else
+            local HERE=$PWD
+            local T=
+            while [ \( ! \( -f $TOPFILE \) \) -a \( "$PWD" != "/" \) ]; do
+                \cd ..
+                T=`PWD= /bin/pwd -P`
+            done
+            \cd "$HERE"
+            if [ -f "$T/$TOPFILE" ]; then
+                echo "$T"
+            fi
+        fi
+    fi
+}
+```
