@@ -39,3 +39,5 @@
   cd ..
   sudo unmount efi
   ```
+- OTA 包分析
+  https://android.github.io/analyseOTA/

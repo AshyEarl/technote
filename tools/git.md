@@ -140,6 +140,21 @@ $ git rebase <branch-rebase-on>
 
 # rebase 当前分支到指定的commit(upstream), 使用外部交互式编辑器（可以用vscode，更直观）
 $ git rebase -i [<upstream> [<branch>]]
+
+# 仅rebase topic分支，不包含next
+    o---o---o---o---o  master
+         \
+          o---o---o---o---o  next
+                           \
+                            o---o---o  topic
+# 目标rebase结果为
+    o---o---o---o---o  master
+        |            \
+        |             o'--o'--o'  topic
+         \
+          o---o---o---o---o  next
+# 可以使用下面的方法
+git rebase --onto master next topic
 ```
 交互式rebase时会有选择commit怎么rebase的选项, vscode中显示如下, commit可以拖动重新排序，也可以选择不同的操作方式
 
@@ -234,6 +249,7 @@ $ git cherry-pick C2 C3
 $ git cherry-pick C1..C3
 # 或者，三个点指代包含
 $ git cherry-pick C2...C3
+$ git cherry-pick C2^..C3
 ```
 ![](images/git_003.png)
 
@@ -353,4 +369,9 @@ $ git cherry-pick C2...C3
   $ git push origin :branchWantDelete
   # 特殊：创建了本地分支(在当前commit)
   $ git fetch origin :newLocalBranch
+  ```
+
+## 查看版本间的提交记录
+  ```bash
+  git log --oneline --no-merges android-platform-12.0.0_r12..android-platform-12.0.0_r15
   ```

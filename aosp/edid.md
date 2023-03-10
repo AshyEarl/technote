@@ -1,0 +1,1 @@
+[EDID官方说明](https://www.extron.com/article/uedid)
